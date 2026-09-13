@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
@@ -12,7 +14,9 @@ class TaskController extends Controller
      */
     public function index()
     {
-        //
+        $tasks = Task::with('project')->get();
+
+        return response()->json($tasks, 200);
     }
 
     /**
@@ -20,7 +24,22 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|exists:projects,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'in:pending,in_progress,completed',
+            'due_date' => 'nullable|date',
+
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors(),
+            ], 421);
+        }
+        $task = Task::create($request->all());
+
+        return response()->json($task, 201);
     }
 
     /**
@@ -28,7 +47,12 @@ class TaskController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $task = Task::with('project')->find($id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+
+        return response()->json($task, 200);
     }
 
     /**
@@ -36,7 +60,35 @@ class TaskController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $task = Task::find($id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|exists:projects,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'in:pending,in_progress,completed',
+            'due_date' => 'nullable|date',
+
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors(),
+            ], 421);
+        }
+
+        $task->project_id = $request->project_id;
+        $task->title = $request->title;
+        $task->description = $request->description;
+        $task->status = $request->status;
+        $task->due_date = $request->due_date;
+
+        $task->save();
+
+        return response()->json($task, 201);
+
     }
 
     /**
@@ -44,6 +96,14 @@ class TaskController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $task = Task::find($id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+
+        $task->delete();
+
+        return response()->json(['messsage' => 'task deleted sucessfully'], 200);
+
     }
 }

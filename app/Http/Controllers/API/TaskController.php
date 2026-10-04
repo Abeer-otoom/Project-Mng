@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
@@ -14,7 +15,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::with('project')->get();
+        $tasks = Task::with('project')->where('user_id', Auth::id())->get();
 
         return response()->json($tasks, 200);
     }
@@ -28,8 +29,7 @@ class TaskController extends Controller
             'project_id' => 'required|exists:projects,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'in:pending,in_progress,completed',
-            'due_date' => 'nullable|date',
+            'due_date' => 'nullable|date', 
 
         ]);
         if ($validator->fails()) {
@@ -37,7 +37,17 @@ class TaskController extends Controller
                 'message' => $validator->errors(),
             ], 421);
         }
-        $task = Task::create($request->all());
+       $data['project_id']=$request->input('project_id');
+       $data['title']=$request->input('title');
+       $data['description']=$request->input('description');
+       $data['due_date']=$request->input('due_date');
+       $data['user_id']=Auth::id();
+
+
+
+
+
+        $task = Task::create($data);
 
         return response()->json($task, 201);
     }

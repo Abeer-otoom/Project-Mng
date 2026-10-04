@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class ProjectController extends Controller
@@ -14,7 +15,7 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::all();
+        $projects = Project::where('user_id', Auth::id() )->get();
 
         return response()->json(['projects' => $projects], 200);
     }
@@ -38,7 +39,13 @@ class ProjectController extends Controller
             ], 422);
         }
 
-        $project = Project::create($request->all());
+       $data['name']=$request->input('name');
+       $data['description']=$request->input('description');
+       $data['due_date']=$request->input('due_date');
+       $data['user_id']=Auth::id();
+
+
+        $project = Project::create($data);
 
         return response()->json($project, 201);
     }
@@ -48,7 +55,7 @@ class ProjectController extends Controller
      */
     public function show(string $id)
     {
-        $project = Project::find($id);
+        $project = Project::with('tasks')->find($id);
         if (! $project) {
             return response()->json(['message' => 'project not found'], 404);
         }
